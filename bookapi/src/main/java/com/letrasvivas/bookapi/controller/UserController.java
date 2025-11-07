@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -30,8 +32,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
-@Tag(name = "User Management", description = "APIs for managing users in the system")
+@Tag(name = "User Management", description = "APIs for managing users in the system - Requires JWT Authentication")
 @CrossOrigin(origins = "*", maxAge = 3600)
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
@@ -41,20 +44,25 @@ public class UserController {
         this.userService = userService;
     }
 
+    /**
+     * Get all users with pagination
+     * Only accessible to ADMIN role
+     */
     @Operation(
             summary = "Get all users with pagination",
-            description = "Retrieve a paginated list of all users in the system. Supports sorting by multiple fields."
+            description = "Retrieve a paginated list of all users in the system. Supports sorting by multiple fields. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = Page.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid pagination parameters",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "400", description = "Invalid pagination parameters"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(
             @Parameter(description = "Page number (0-based)", example = "0")
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -71,20 +79,25 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get user by ID
+     * Users can only view their own profile, Admins can view any profile
+     */
     @Operation(
             summary = "Get user by ID",
-            description = "Retrieve a specific user by their unique identifier"
+            description = "Retrieve a specific user by their unique identifier. Users can view their own profile, Admins can view any profile."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User found successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = UserResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Cannot view other user's profile"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<UserResponseDTO> getUserById(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long id
@@ -92,49 +105,55 @@ public class UserController {
         UserResponseDTO user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
+        /**
+         * Create a new user
+         * Public endpoint for creating initial users (bootstrap)
+         * In production, consider adding rate limiting or alternative protection
+         */
+        @Operation(
+                summary = "Create a new user",
+                description = "Create a new user in the system with the provided information. Public endpoint for bootstrap/registration."
+        )
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "201", description = "User created successfully",
+                        content = @Content(mediaType = "application/json",
+                                schema = @Schema(implementation = UserResponseDTO.class))),
+                @ApiResponse(responseCode = "400", description = "Invalid input data"),
+                @ApiResponse(responseCode = "409", description = "User with this email already exists"),
+                @ApiResponse(responseCode = "500", description = "Internal server error")
+        })
+        @PostMapping
+        // SIN @PreAuthorize para permitir crear el primer usuario
+        public ResponseEntity<UserResponseDTO> createUser(
+                @Parameter(description = "User data to create", required = true)
+                @Valid @RequestBody CreateUserRequestDTO createUserDTO
+        ) {
+            UserResponseDTO createdUser = userService.createUser(createUserDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+        }
 
-    @Operation(
-            summary = "Create a new user",
-            description = "Create a new user in the system with the provided information"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "User created successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UserResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid input data",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "409", description = "User with this email already exists",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
-    })
-    @PostMapping
-    public ResponseEntity<UserResponseDTO> createUser(
-            @Parameter(description = "User data to create", required = true)
-            @Valid @RequestBody CreateUserRequestDTO createUserDTO
-    ) {
-        UserResponseDTO createdUser = userService.createUser(createUserDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
-    }
 
+    /**
+     * Update an existing user
+     * Users can only update their own profile, Admins can update any profile
+     */
     @Operation(
             summary = "Update an existing user",
-            description = "Update user information. Only provided fields will be updated."
+            description = "Update user information. Only provided fields will be updated. Users can update their own profile, Admins can update any profile."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = UserResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid input data",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "409", description = "Email already exists",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Cannot update other user's profile"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "409", description = "Email already exists"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<UserResponseDTO> updateUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long id,
@@ -146,19 +165,23 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Soft delete a user (deactivate)
+     * Users can only deactivate their own account, Admins can deactivate any account
+     */
     @Operation(
             summary = "Soft delete a user",
-            description = "Deactivate a user by setting isActive to false. User data is preserved."
+            description = "Deactivate a user by setting isActive to false. User data is preserved. Users can deactivate their own account, Admins can deactivate any account."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User deactivated successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "User deactivated successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Cannot delete other user's account"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<Map<String, String>> deleteUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long id
@@ -170,19 +193,23 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Permanently delete a user
+     * Only ADMIN can permanently delete users
+     */
     @Operation(
             summary = "Permanently delete a user",
-            description = "Permanently remove a user from the system. This action cannot be undone."
+            description = "Permanently remove a user from the system. This action cannot be undone. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User permanently deleted",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "User permanently deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @DeleteMapping("/{id}/permanent")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> permanentlyDeleteUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long id
@@ -194,19 +221,22 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Search users by name
+     * Available to authenticated users
+     */
     @Operation(
             summary = "Search users by name",
             description = "Search users by first name or last name (case-insensitive partial match)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Search completed successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid search parameters",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "Search completed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid search parameters"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> searchUsersByName(
             @Parameter(description = "Name to search for", required = true, example = "John")
             @RequestParam String name
@@ -215,35 +245,43 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get active users
+     * Only ADMIN can view all active users
+     */
     @Operation(
             summary = "Get active users",
-            description = "Retrieve all users that are currently active in the system"
+            description = "Retrieve all users that are currently active in the system. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Active users retrieved successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "Active users retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/active")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getActiveUsers() {
         List<UserResponseDTO> activeUsers = userService.getActiveUsers();
         return ResponseEntity.ok(activeUsers);
     }
 
+    /**
+     * Get users by age range
+     * Available to authenticated users
+     */
     @Operation(
             summary = "Get users by age range",
             description = "Retrieve users within a specific age range"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid age parameters",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid age parameters"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/age-range")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsersByAgeRange(
             @Parameter(description = "Minimum age", required = true, example = "18")
             @RequestParam @Min(16) @Max(120) Integer minAge,
@@ -255,35 +293,43 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get users with active subscriptions
+     * Available to authenticated users
+     */
     @Operation(
             summary = "Get users with active subscriptions",
             description = "Retrieve all users who currently have at least one active subscription"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Users with active subscriptions retrieved",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "Users with active subscriptions retrieved"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/with-subscriptions")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsersWithActiveSubscriptions() {
         List<UserResponseDTO> users = userService.getUsersWithActiveSubscriptions();
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Advanced user search with multiple criteria
+     * Only ADMIN can use advanced search
+     */
     @Operation(
             summary = "Advanced user search",
-            description = "Search users using multiple criteria with pagination support"
+            description = "Search users using multiple criteria with pagination support. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Search completed successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid search parameters",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "Search completed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid search parameters"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/advanced-search")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponseDTO>> advancedSearch(
             @Parameter(description = "First name filter", example = "John")
             @RequestParam(required = false) String firstName,
@@ -319,19 +365,22 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get user by email
+     * Users can only view their own email, Admins can view any email
+     */
     @Operation(
             summary = "Get user by email",
             description = "Retrieve a user by their email address"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User found successfully",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "User not found",
-                    content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "200", description = "User found successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> getUserByEmail(
             @Parameter(description = "User email", required = true, example = "john@example.com")
             @PathVariable String email
@@ -340,6 +389,10 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    /**
+     * Check if email exists
+     * Available to unauthenticated users (for registration validation)
+     */
     @Operation(
             summary = "Check if email exists",
             description = "Check whether an email address is already registered in the system"
@@ -348,10 +401,10 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Email check completed",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "{\"exists\": true, \"email\": \"john@example.com\"}"))),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/email/{email}/exists")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> checkEmailExists(
             @Parameter(description = "Email to check", required = true, example = "john@example.com")
             @PathVariable String email
@@ -363,18 +416,24 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get user statistics
+     * Only ADMIN can view statistics
+     */
     @Operation(
             summary = "Get user statistics",
-            description = "Get general statistics about users in the system"
+            description = "Get general statistics about users in the system. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "{\"totalUsers\": 100, \"activeUsers\": 85}"))),
-            @ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(mediaType = "application/json"))
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getUserStatistics() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", userService.getUserCount());
@@ -384,6 +443,9 @@ public class UserController {
 
     // ========== PRIVATE HELPER METHODS ==========
 
+    /**
+     * Helper method to create Pageable object from sort parameters
+     */
     private Pageable createPageable(int page, int size, String[] sort) {
         Sort.Order[] orders = new Sort.Order[sort.length];
         for (int i = 0; i < sort.length; i++) {
