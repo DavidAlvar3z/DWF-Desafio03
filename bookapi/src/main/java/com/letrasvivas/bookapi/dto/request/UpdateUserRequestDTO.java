@@ -1,5 +1,6 @@
 package com.letrasvivas.bookapi.dto.request;
 
+import com.letrasvivas.bookapi.entity.User;
 import jakarta.validation.constraints.*;
 
 public class UpdateUserRequestDTO {
@@ -12,6 +13,15 @@ public class UpdateUserRequestDTO {
 
     @Email(message = "Email should be valid")
     private String email;
+
+    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$",
+            message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character"
+    )
+    private String password;
+
+    private User.Role role;
 
     @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Phone number should be valid")
     private String phoneNumber;
@@ -48,6 +58,22 @@ public class UpdateUserRequestDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public User.Role getRole() {
+        return role;
+    }
+
+    public void setRole(User.Role role) {
+        this.role = role;
     }
 
     public String getPhoneNumber() {

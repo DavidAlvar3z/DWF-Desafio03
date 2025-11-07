@@ -16,6 +16,14 @@ public class CreateUserRequestDTO {
     @Email(message = "Email should be valid")
     private String email;
 
+    @NotBlank(message = "Password is mandatory")
+    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$",
+            message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character"
+    )
+    private String password;
+
     @NotBlank(message = "Phone number is mandatory")
     @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Phone number should be valid")
     private String phoneNumber;
@@ -27,16 +35,6 @@ public class CreateUserRequestDTO {
 
     // Default constructor
     public CreateUserRequestDTO() {}
-
-    // Constructor
-    public CreateUserRequestDTO(String firstName, String lastName, String email,
-                                String phoneNumber, Integer age) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phoneNumber = phoneNumber;
-        this.age = age;
-    }
 
     // Getters and Setters
     public String getFirstName() {
@@ -61,6 +59,14 @@ public class CreateUserRequestDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getPhoneNumber() {
