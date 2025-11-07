@@ -31,6 +31,17 @@ public class User {
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
+    // ✅ NUEVO CAMPO: Password para autenticación JWT
+    @NotBlank(message = "Password is mandatory")
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    // ✅ NUEVO CAMPO: Role para autorización
+    @NotNull(message = "Role is mandatory")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    private Role role = Role.USER;
+
     @NotBlank(message = "Phone number is mandatory")
     @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Phone number should be valid")
     @Column(name = "phone_number", nullable = false, length = 15)
@@ -55,16 +66,32 @@ public class User {
     @JsonManagedReference
     private List<Subscription> subscriptions = new ArrayList<>();
 
+    // ✅ ENUM para Roles
+    public enum Role {
+        USER,
+        ADMIN,
+        MODERATOR
+    }
+
     // Default constructor
     public User() {}
 
-    // Constructor for essential fields
-    public User(String firstName, String lastName, String email, String phoneNumber, Integer age) {
+    // Constructor for essential fields (actualizado con password y role)
+    public User(String firstName, String lastName, String email, String password,
+                String phoneNumber, Integer age, Role role) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.password = password;
         this.phoneNumber = phoneNumber;
         this.age = age;
+        this.role = role != null ? role : Role.USER;
+    }
+
+    // Constructor alternativo sin role (por defecto USER)
+    public User(String firstName, String lastName, String email, String password,
+                String phoneNumber, Integer age) {
+        this(firstName, lastName, email, password, phoneNumber, age, Role.USER);
     }
 
     // JPA lifecycle callbacks
@@ -74,6 +101,9 @@ public class User {
         updatedAt = LocalDateTime.now();
         if (isActive == null) {
             isActive = true;
+        }
+        if (role == null) {
+            role = Role.USER;
         }
     }
 
@@ -93,7 +123,7 @@ public class User {
         subscription.setUser(null);
     }
 
-    // Getters and Setters
+    // Getters and Setters (existentes)
     public Long getId() {
         return id;
     }
@@ -124,6 +154,22 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public String getPhoneNumber() {
@@ -186,6 +232,7 @@ public class User {
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
+                ", role=" + role +
                 ", phoneNumber='" + phoneNumber + '\'' +
                 ", age=" + age +
                 ", isActive=" + isActive +
