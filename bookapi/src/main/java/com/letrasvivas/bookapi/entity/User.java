@@ -3,6 +3,7 @@ package com.letrasvivas.bookapi.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -10,6 +11,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
 
     @Id
@@ -31,15 +37,14 @@ public class User {
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
-    // ✅ NUEVO CAMPO: Password para autenticación JWT
     @NotBlank(message = "Password is mandatory")
     @Column(name = "password", nullable = false)
     private String password;
 
-    // ✅ NUEVO CAMPO: Role para autorización
     @NotNull(message = "Role is mandatory")
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
+    @Builder.Default
     private Role role = Role.USER;
 
     @NotBlank(message = "Phone number is mandatory")
@@ -59,42 +64,20 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
-    // One-to-Many relationship with Subscription
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonManagedReference
+    @Builder.Default
     private List<Subscription> subscriptions = new ArrayList<>();
 
-    // ✅ ENUM para Roles
     public enum Role {
         USER,
         ADMIN,
         MODERATOR
     }
 
-    // Default constructor
-    public User() {}
-
-    // Constructor for essential fields (actualizado con password y role)
-    public User(String firstName, String lastName, String email, String password,
-                String phoneNumber, Integer age, Role role) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.password = password;
-        this.phoneNumber = phoneNumber;
-        this.age = age;
-        this.role = role != null ? role : Role.USER;
-    }
-
-    // Constructor alternativo sin role (por defecto USER)
-    public User(String firstName, String lastName, String email, String password,
-                String phoneNumber, Integer age) {
-        this(firstName, lastName, email, password, phoneNumber, age, Role.USER);
-    }
-
-    // JPA lifecycle callbacks
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -112,7 +95,6 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    // Helper methods for managing subscriptions
     public void addSubscription(Subscription subscription) {
         subscriptions.add(subscription);
         subscription.setUser(this);
@@ -123,104 +105,6 @@ public class User {
         subscription.setUser(null);
     }
 
-    // Getters and Setters (existentes)
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
-
-    public List<Subscription> getSubscriptions() {
-        return subscriptions;
-    }
-
-    public void setSubscriptions(List<Subscription> subscriptions) {
-        this.subscriptions = subscriptions;
-    }
-
-    // Utility method to get full name
     public String getFullName() {
         return firstName + " " + lastName;
     }

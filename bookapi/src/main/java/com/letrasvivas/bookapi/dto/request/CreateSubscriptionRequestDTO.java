@@ -47,6 +47,17 @@ public class CreateSubscriptionRequestDTO {
         this.userId = userId;
     }
 
+    @Min(value = 1, message = "Book ID must be a positive number")
+    private Long bookId;
+
+    public Long getBookId() {
+        return bookId;
+    }
+
+    public void setBookId(Long bookId) {
+        this.bookId = bookId;
+    }
+
     // Getters and Setters
     public String getPlanName() {
         return planName;

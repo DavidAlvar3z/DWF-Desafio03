@@ -3,13 +3,17 @@ package com.letrasvivas.bookapi.service;
 import com.letrasvivas.bookapi.dto.request.CreateSubscriptionRequestDTO;
 import com.letrasvivas.bookapi.dto.request.UpdateSubscriptionRequestDTO;
 import com.letrasvivas.bookapi.dto.response.SubscriptionResponseDTO;
+import com.letrasvivas.bookapi.entity.Book;
 import com.letrasvivas.bookapi.entity.Subscription;
 import com.letrasvivas.bookapi.entity.Subscription.SubscriptionStatus;
 import com.letrasvivas.bookapi.entity.User;
+import com.letrasvivas.bookapi.entity.User.Role;
 import com.letrasvivas.bookapi.exception.ResourceNotFoundException;
 import com.letrasvivas.bookapi.exception.BusinessValidationException;
+import com.letrasvivas.bookapi.repository.BookRepository;
 import com.letrasvivas.bookapi.repository.SubscriptionRepository;
 import com.letrasvivas.bookapi.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,17 +25,22 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final BookRepository bookRepository;
 
     @Autowired
-    public SubscriptionService(SubscriptionRepository subscriptionRepository, UserRepository userRepository) {
+    public SubscriptionService(SubscriptionRepository subscriptionRepository,
+                               UserRepository userRepository,
+                               BookRepository bookRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
+        this.bookRepository = bookRepository;
     }
 
     /**
@@ -56,23 +65,48 @@ public class SubscriptionService {
     /**
      * Create a new subscription
      */
+    @Transactional
     public SubscriptionResponseDTO createSubscription(CreateSubscriptionRequestDTO requestDTO) {
+        log.info("📝 Creating subscription for user {} and book {}", requestDTO.getUserId(), requestDTO.getBookId());
+
         // Validate user exists
         User user = userRepository.findById(requestDTO.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + requestDTO.getUserId()));
+
+        // Validate that user is NOT admin
+        if (user.getRole() == Role.ADMIN) {
+            log.warn("⚠️ Admin user {} attempted to create subscription", user.getId());
+            throw new BusinessValidationException("Los administradores no pueden crear suscripciones");
+        }
+
+        // Validate book exists (if bookId is present)
+        if (requestDTO.getBookId() != null) {
+            Book book = bookRepository.findById(requestDTO.getBookId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + requestDTO.getBookId()));
+
+            // usar getIsAvailable() en lugar de isAvailable()
+            if (!book.getIsAvailable()) {
+                throw new BusinessValidationException("El libro no está disponible para suscripción");
+            }
+            log.info("✅ Book {} is available for subscription", book.getId());
+        }
 
         // Check for duplicate active subscriptions of same plan
         List<Subscription> existingActiveSubscriptions = subscriptionRepository
                 .findActiveSubscriptionsByUserAndPlan(requestDTO.getUserId(), requestDTO.getPlanName());
 
         if (!existingActiveSubscriptions.isEmpty()) {
+            log.warn("⚠️ User {} already has active subscription for plan: {}", requestDTO.getUserId(), requestDTO.getPlanName());
             throw new BusinessValidationException("User already has an active subscription for plan: " + requestDTO.getPlanName());
         }
 
+        // Create subscription entity
         Subscription subscription = convertToEntity(requestDTO, user);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
 
         Subscription savedSubscription = subscriptionRepository.save(subscription);
+        log.info("✅ Subscription created successfully with ID: {}", savedSubscription.getId());
+
         return convertToResponseDTO(savedSubscription);
     }
 

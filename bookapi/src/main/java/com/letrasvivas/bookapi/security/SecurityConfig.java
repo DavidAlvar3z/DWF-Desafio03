@@ -121,8 +121,6 @@ public class SecurityConfig {
 
                         // PUBLIC ENDPOINTS - Create First User (For bootstrap)
                         // Allows creating the first admin user without authentication
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
-
                         // PUBLIC ENDPOINTS - Swagger/OpenAPI Documentation
                         // Allows access to API documentation without authentication
                         .requestMatchers(

@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -34,6 +35,9 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;  // ← AGREGADO
+
     @InjectMocks
     private UserService userService;
 
@@ -48,8 +52,10 @@ class UserServiceTest {
         testUser.setFirstName("John");
         testUser.setLastName("Doe");
         testUser.setEmail("john.doe@example.com");
+        testUser.setPassword("encodedPassword");  // ← AGREGADO
         testUser.setPhoneNumber("+1234567890");
         testUser.setAge(25);
+        testUser.setRole(User.Role.USER);  // ← AGREGADO
         testUser.setIsActive(true);
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setUpdatedAt(LocalDateTime.now());
@@ -58,6 +64,7 @@ class UserServiceTest {
         createUserRequestDTO.setFirstName("Jane");
         createUserRequestDTO.setLastName("Smith");
         createUserRequestDTO.setEmail("jane.smith@example.com");
+        createUserRequestDTO.setPassword("Password123!");  // ← AGREGADO
         createUserRequestDTO.setPhoneNumber("+1987654321");
         createUserRequestDTO.setAge(30);
 
@@ -68,17 +75,13 @@ class UserServiceTest {
 
     @Test
     void getAllUsers_ShouldReturnPageOfUsers() {
-        // Given
         Pageable pageable = PageRequest.of(0, 10);
         List<User> users = Arrays.asList(testUser);
         Page<User> userPage = new PageImpl<>(users, pageable, users.size());
-
         when(userRepository.findAll(pageable)).thenReturn(userPage);
 
-        // When
         Page<UserResponseDTO> result = userService.getAllUsers(pageable);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         assertEquals("John", result.getContent().get(0).getFirstName());
@@ -88,13 +91,10 @@ class UserServiceTest {
 
     @Test
     void getUserById_WithValidId_ShouldReturnUser() {
-        // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        // When
         UserResponseDTO result = userService.getUserById(1L);
 
-        // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("John", result.getFirstName());
@@ -104,10 +104,8 @@ class UserServiceTest {
 
     @Test
     void getUserById_WithInvalidId_ShouldThrowResourceNotFoundException() {
-        // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // When & Then
         assertThrows(ResourceNotFoundException.class, () -> {
             userService.getUserById(999L);
         });
@@ -116,25 +114,22 @@ class UserServiceTest {
 
     @Test
     void createUser_WithValidData_ShouldCreateUser() {
-        // Given
         when(userRepository.existsByEmail(createUserRequestDTO.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");  // ← AGREGADO
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        // When
         UserResponseDTO result = userService.createUser(createUserRequestDTO);
 
-        // Then
         assertNotNull(result);
         verify(userRepository).existsByEmail(createUserRequestDTO.getEmail());
+        verify(passwordEncoder).encode("Password123!");  // ← AGREGADO
         verify(userRepository).save(any(User.class));
     }
 
     @Test
     void createUser_WithDuplicateEmail_ShouldThrowDuplicateResourceException() {
-        // Given
         when(userRepository.existsByEmail(createUserRequestDTO.getEmail())).thenReturn(true);
 
-        // When & Then
         assertThrows(DuplicateResourceException.class, () -> {
             userService.createUser(createUserRequestDTO);
         });
@@ -144,14 +139,11 @@ class UserServiceTest {
 
     @Test
     void updateUser_WithValidData_ShouldUpdateUser() {
-        // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        // When
         UserResponseDTO result = userService.updateUser(1L, updateUserRequestDTO);
 
-        // Then
         assertNotNull(result);
         verify(userRepository).findById(1L);
         verify(userRepository).save(any(User.class));
@@ -159,10 +151,8 @@ class UserServiceTest {
 
     @Test
     void updateUser_WithInvalidId_ShouldThrowResourceNotFoundException() {
-        // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // When & Then
         assertThrows(ResourceNotFoundException.class, () -> {
             userService.updateUser(999L, updateUserRequestDTO);
         });
@@ -172,14 +162,11 @@ class UserServiceTest {
 
     @Test
     void deleteUser_WithValidId_ShouldSoftDeleteUser() {
-        // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        // When
         userService.deleteUser(1L);
 
-        // Then
         verify(userRepository).findById(1L);
         verify(userRepository).save(any(User.class));
         assertFalse(testUser.getIsActive());
@@ -187,14 +174,11 @@ class UserServiceTest {
 
     @Test
     void searchUsersByName_ShouldReturnMatchingUsers() {
-        // Given
         List<User> users = Arrays.asList(testUser);
         when(userRepository.findByNameContainingIgnoreCase("John")).thenReturn(users);
 
-        // When
         List<UserResponseDTO> result = userService.searchUsersByName("John");
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("John", result.get(0).getFirstName());
@@ -203,14 +187,11 @@ class UserServiceTest {
 
     @Test
     void getActiveUsers_ShouldReturnOnlyActiveUsers() {
-        // Given
         List<User> activeUsers = Arrays.asList(testUser);
         when(userRepository.findByIsActiveTrue()).thenReturn(activeUsers);
 
-        // When
         List<UserResponseDTO> result = userService.getActiveUsers();
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.get(0).getIsActive());
@@ -219,26 +200,20 @@ class UserServiceTest {
 
     @Test
     void emailExists_WithExistingEmail_ShouldReturnTrue() {
-        // Given
         when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(true);
 
-        // When
         boolean result = userService.emailExists("john.doe@example.com");
 
-        // Then
         assertTrue(result);
         verify(userRepository).existsByEmail("john.doe@example.com");
     }
 
     @Test
     void emailExists_WithNonExistingEmail_ShouldReturnFalse() {
-        // Given
         when(userRepository.existsByEmail("nonexistent@example.com")).thenReturn(false);
 
-        // When
         boolean result = userService.emailExists("nonexistent@example.com");
 
-        // Then
         assertFalse(result);
         verify(userRepository).existsByEmail("nonexistent@example.com");
     }

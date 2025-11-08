@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,10 +27,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "User Management", description = "APIs for managing users in the system - Requires JWT Authentication")
@@ -105,33 +108,35 @@ public class UserController {
         UserResponseDTO user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
-        /**
-         * Create a new user
-         * Public endpoint for creating initial users (bootstrap)
-         * In production, consider adding rate limiting or alternative protection
-         */
-        @Operation(
-                summary = "Create a new user",
-                description = "Create a new user in the system with the provided information. Public endpoint for bootstrap/registration."
-        )
-        @ApiResponses(value = {
-                @ApiResponse(responseCode = "201", description = "User created successfully",
-                        content = @Content(mediaType = "application/json",
-                                schema = @Schema(implementation = UserResponseDTO.class))),
-                @ApiResponse(responseCode = "400", description = "Invalid input data"),
-                @ApiResponse(responseCode = "409", description = "User with this email already exists"),
-                @ApiResponse(responseCode = "500", description = "Internal server error")
-        })
-        @PostMapping
-        // SIN @PreAuthorize para permitir crear el primer usuario
-        public ResponseEntity<UserResponseDTO> createUser(
-                @Parameter(description = "User data to create", required = true)
-                @Valid @RequestBody CreateUserRequestDTO createUserDTO
-        ) {
-            UserResponseDTO createdUser = userService.createUser(createUserDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
-        }
 
+    /**
+     * Create a new user
+     * Only ADMIN can create users through this endpoint
+     * For public registration, use /api/v1/auth/register
+     */
+    @Operation(
+            summary = "Create a new user",
+            description = "Create a new user in the system with the provided information. [ADMIN ONLY]"  // ← Cambiado
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User created successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),  // ← Agregado
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),  // ← Agregado
+            @ApiResponse(responseCode = "409", description = "User with this email already exists"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDTO> createUser(
+            @Parameter(description = "User data to create", required = true)
+            @Valid @RequestBody CreateUserRequestDTO createUserDTO
+    ) {
+        UserResponseDTO createdUser = userService.createUser(createUserDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+    }
 
     /**
      * Update an existing user
@@ -441,19 +446,44 @@ public class UserController {
         return ResponseEntity.ok(stats);
     }
 
-    // ========== PRIVATE HELPER METHODS ==========
-
     /**
      * Helper method to create Pageable object from sort parameters
      */
     private Pageable createPageable(int page, int size, String[] sort) {
-        Sort.Order[] orders = new Sort.Order[sort.length];
-        for (int i = 0; i < sort.length; i++) {
-            String[] sortParams = sort[i].split(",");
-            String field = sortParams[0];
-            String direction = sortParams.length > 1 ? sortParams[1] : "asc";
-            orders[i] = new Sort.Order(Sort.Direction.fromString(direction), field);
+        try {
+            List<Sort.Order> orders = new ArrayList<>();
+
+            for (String sortParam : sort) {
+                // Split by comma: "field,direction"
+                String[] parts = sortParam.split(",");
+
+                if (parts.length > 0) {
+                    String property = parts[0].trim();
+
+                    // Default direction is ASC
+                    Sort.Direction direction = Sort.Direction.ASC;
+
+                    if (parts.length > 1) {
+                        String directionStr = parts[1].trim().toUpperCase();
+                        if (directionStr.equals("DESC")) {
+                            direction = Sort.Direction.DESC;
+                        }
+                    }
+
+                    orders.add(new Sort.Order(direction, property));
+                }
+            }
+
+            if (orders.isEmpty()) {
+                return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
+            }
+
+            return PageRequest.of(page, size, Sort.by(orders));
+
+        } catch (Exception e) {
+            log.error("❌ Error creating Pageable: {}", e.getMessage());
+            // Return default pagination if there's an error
+            return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
         }
-        return PageRequest.of(page, size, Sort.by(orders));
     }
 }

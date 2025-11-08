@@ -53,6 +53,8 @@ class SubscriptionServiceTest {
         testUser.setFirstName("John");
         testUser.setLastName("Doe");
         testUser.setEmail("john.doe@example.com");
+        testUser.setPassword("Password123!");  // ← AGREGADO
+        testUser.setRole(User.Role.USER);  // ← AGREGADO
 
         testSubscription = new Subscription();
         testSubscription.setId(1L);
@@ -79,13 +81,8 @@ class SubscriptionServiceTest {
 
     @Test
     void getSubscriptionById_WithValidId_ShouldReturnSubscription() {
-        // Given
         when(subscriptionRepository.findById(1L)).thenReturn(Optional.of(testSubscription));
-
-        // When
         SubscriptionResponseDTO result = subscriptionService.getSubscriptionById(1L);
-
-        // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("Premium Plan", result.getPlanName());
@@ -95,10 +92,7 @@ class SubscriptionServiceTest {
 
     @Test
     void getSubscriptionById_WithInvalidId_ShouldThrowResourceNotFoundException() {
-        // Given
         when(subscriptionRepository.findById(999L)).thenReturn(Optional.empty());
-
-        // When & Then
         assertThrows(ResourceNotFoundException.class, () -> {
             subscriptionService.getSubscriptionById(999L);
         });
@@ -107,16 +101,13 @@ class SubscriptionServiceTest {
 
     @Test
     void createSubscription_WithValidData_ShouldCreateSubscription() {
-        // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(subscriptionRepository.findActiveSubscriptionsByUserAndPlan(1L, "Basic Plan"))
                 .thenReturn(Arrays.asList());
         when(subscriptionRepository.save(any(Subscription.class))).thenReturn(testSubscription);
 
-        // When
         SubscriptionResponseDTO result = subscriptionService.createSubscription(createSubscriptionRequestDTO);
 
-        // Then
         assertNotNull(result);
         verify(userRepository).findById(1L);
         verify(subscriptionRepository).findActiveSubscriptionsByUserAndPlan(1L, "Basic Plan");
@@ -125,11 +116,9 @@ class SubscriptionServiceTest {
 
     @Test
     void createSubscription_WithInvalidUserId_ShouldThrowResourceNotFoundException() {
-        // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
         createSubscriptionRequestDTO.setUserId(999L);
 
-        // When & Then
         assertThrows(ResourceNotFoundException.class, () -> {
             subscriptionService.createSubscription(createSubscriptionRequestDTO);
         });
@@ -139,12 +128,10 @@ class SubscriptionServiceTest {
 
     @Test
     void createSubscription_WithDuplicateActivePlan_ShouldThrowBusinessValidationException() {
-        // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(subscriptionRepository.findActiveSubscriptionsByUserAndPlan(1L, "Basic Plan"))
                 .thenReturn(Arrays.asList(testSubscription));
 
-        // When & Then
         assertThrows(BusinessValidationException.class, () -> {
             subscriptionService.createSubscription(createSubscriptionRequestDTO);
         });
@@ -155,14 +142,11 @@ class SubscriptionServiceTest {
 
     @Test
     void updateSubscription_WithValidData_ShouldUpdateSubscription() {
-        // Given
         when(subscriptionRepository.findById(1L)).thenReturn(Optional.of(testSubscription));
         when(subscriptionRepository.save(any(Subscription.class))).thenReturn(testSubscription);
 
-        // When
         SubscriptionResponseDTO result = subscriptionService.updateSubscription(1L, updateSubscriptionRequestDTO);
 
-        // Then
         assertNotNull(result);
         verify(subscriptionRepository).findById(1L);
         verify(subscriptionRepository).save(any(Subscription.class));
@@ -170,14 +154,11 @@ class SubscriptionServiceTest {
 
     @Test
     void cancelSubscription_WithValidId_ShouldCancelSubscription() {
-        // Given
         when(subscriptionRepository.findById(1L)).thenReturn(Optional.of(testSubscription));
         when(subscriptionRepository.save(any(Subscription.class))).thenReturn(testSubscription);
 
-        // When
         SubscriptionResponseDTO result = subscriptionService.cancelSubscription(1L);
 
-        // Then
         assertNotNull(result);
         assertEquals("CANCELLED", result.getStatus());
         verify(subscriptionRepository).findById(1L);
@@ -186,14 +167,11 @@ class SubscriptionServiceTest {
 
     @Test
     void getSubscriptionsByUserId_WithValidUserId_ShouldReturnSubscriptions() {
-        // Given
         when(userRepository.existsById(1L)).thenReturn(true);
         when(subscriptionRepository.findByUserId(1L)).thenReturn(Arrays.asList(testSubscription));
 
-        // When
         List<SubscriptionResponseDTO> result = subscriptionService.getSubscriptionsByUserId(1L);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("Premium Plan", result.get(0).getPlanName());
@@ -203,10 +181,8 @@ class SubscriptionServiceTest {
 
     @Test
     void getSubscriptionsByUserId_WithInvalidUserId_ShouldThrowResourceNotFoundException() {
-        // Given
         when(userRepository.existsById(999L)).thenReturn(false);
 
-        // When & Then
         assertThrows(ResourceNotFoundException.class, () -> {
             subscriptionService.getSubscriptionsByUserId(999L);
         });
@@ -216,14 +192,11 @@ class SubscriptionServiceTest {
 
     @Test
     void getSubscriptionsByStatus_ShouldReturnFilteredSubscriptions() {
-        // Given
         when(subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVE))
                 .thenReturn(Arrays.asList(testSubscription));
 
-        // When
         List<SubscriptionResponseDTO> result = subscriptionService.getSubscriptionsByStatus(SubscriptionStatus.ACTIVE);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("ACTIVE", result.get(0).getStatus());
@@ -232,14 +205,11 @@ class SubscriptionServiceTest {
 
     @Test
     void getExpiringSubscriptions_ShouldReturnSubscriptionsEndingSoon() {
-        // Given
         when(subscriptionRepository.findExpiringSubscriptions(any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(Arrays.asList(testSubscription));
 
-        // When
         List<SubscriptionResponseDTO> result = subscriptionService.getExpiringSubscriptions(30);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         verify(subscriptionRepository).findExpiringSubscriptions(any(LocalDate.class), any(LocalDate.class));
@@ -247,17 +217,14 @@ class SubscriptionServiceTest {
 
     @Test
     void updateExpiredSubscriptions_ShouldUpdateExpiredSubscriptionsToExpiredStatus() {
-        // Given
         Subscription expiredSubscription = new Subscription();
         expiredSubscription.setStatus(SubscriptionStatus.ACTIVE);
         when(subscriptionRepository.findExpiredButActiveSubscriptions(any(LocalDate.class)))
                 .thenReturn(Arrays.asList(expiredSubscription));
         when(subscriptionRepository.saveAll(anyList())).thenReturn(Arrays.asList(expiredSubscription));
 
-        // When
         int result = subscriptionService.updateExpiredSubscriptions();
 
-        // Then
         assertEquals(1, result);
         assertEquals(SubscriptionStatus.EXPIRED, expiredSubscription.getStatus());
         verify(subscriptionRepository).findExpiredButActiveSubscriptions(any(LocalDate.class));
@@ -266,33 +233,27 @@ class SubscriptionServiceTest {
 
     @Test
     void calculateRevenue_WithValidDateRange_ShouldReturnTotalRevenue() {
-        // Given
         LocalDate startDate = LocalDate.now().minusMonths(1);
         LocalDate endDate = LocalDate.now();
         BigDecimal expectedRevenue = new BigDecimal("299.99");
         when(subscriptionRepository.calculateRevenueByDateRange(startDate, endDate))
                 .thenReturn(expectedRevenue);
 
-        // When
         BigDecimal result = subscriptionService.calculateRevenue(startDate, endDate);
 
-        // Then
         assertEquals(expectedRevenue, result);
         verify(subscriptionRepository).calculateRevenueByDateRange(startDate, endDate);
     }
 
     @Test
     void calculateRevenue_WithNullResult_ShouldReturnZero() {
-        // Given
         LocalDate startDate = LocalDate.now().minusMonths(1);
         LocalDate endDate = LocalDate.now();
         when(subscriptionRepository.calculateRevenueByDateRange(startDate, endDate))
                 .thenReturn(null);
 
-        // When
         BigDecimal result = subscriptionService.calculateRevenue(startDate, endDate);
 
-        // Then
         assertEquals(BigDecimal.ZERO, result);
         verify(subscriptionRepository).calculateRevenueByDateRange(startDate, endDate);
     }

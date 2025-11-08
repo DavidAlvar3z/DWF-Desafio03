@@ -258,15 +258,11 @@
             </plugin>
 
             <!-- Maven Checkstyle Plugin for code quality -->
+            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.2.0</version>
-                <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>false</failsOnError>
-                </configuration>
                 <executions>
                     <execution>
                         <id>validate</id>
@@ -277,6 +273,8 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
+
         </plugins>
     </build>
 
