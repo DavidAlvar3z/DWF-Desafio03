@@ -73,6 +73,7 @@ public class UserService {
         if (user.getRole() == null) {
             user.setRole(User.Role.USER);
         }
+
         User savedUser = userRepository.save(user);
         return convertToResponseDTO(savedUser);
     }
@@ -91,9 +92,11 @@ public class UserService {
         }
 
         updateUserFromDTO(existingUser, requestDTO);
+
         if (requestDTO.getPassword() != null && !requestDTO.getPassword().isBlank()) {
             existingUser.setPassword(passwordEncoder.encode(requestDTO.getPassword()));
         }
+
         User updatedUser = userRepository.save(existingUser);
         return convertToResponseDTO(updatedUser);
     }
@@ -298,21 +301,27 @@ public class UserService {
         if (requestDTO.getFirstName() != null) {
             user.setFirstName(requestDTO.getFirstName());
         }
+
         if (requestDTO.getLastName() != null) {
             user.setLastName(requestDTO.getLastName());
         }
+
         if (requestDTO.getEmail() != null) {
             user.setEmail(requestDTO.getEmail());
         }
+
         if (requestDTO.getPhoneNumber() != null) {
             user.setPhoneNumber(requestDTO.getPhoneNumber());
         }
+
         if (requestDTO.getAge() != null) {
             user.setAge(requestDTO.getAge());
         }
+
         if (requestDTO.getIsActive() != null) {
             user.setIsActive(requestDTO.getIsActive());
         }
+
         if (requestDTO.getRole() != null) {
             user.setRole(requestDTO.getRole());
         }
@@ -334,7 +343,6 @@ public class UserService {
         responseDTO.setUpdatedAt(user.getUpdatedAt());
         responseDTO.setFullName(user.getFullName());
         responseDTO.setRole(user.getRole() != null ? user.getRole().name() : null);
-
         responseDTO.setSubscriptionCount(user.getSubscriptions() != null ? user.getSubscriptions().size() : 0);
 
         if (user.getSubscriptions() != null && !user.getSubscriptions().isEmpty()) {

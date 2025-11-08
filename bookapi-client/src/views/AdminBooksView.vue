@@ -270,6 +270,7 @@
 import { ref, computed, onMounted } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import { bookService } from '../services/bookService';
+import { getAllBooks } from '../services/bookService'
 
 interface Book {
   id?: number;
@@ -334,12 +335,8 @@ const filteredBooks = computed(() => {
 const loadBooks = async () => {
   loading.value = true;
   try {
-    const response = await bookService.getAll();
-    if (response.content && Array.isArray(response.content)) {
-      books.value = response.content;
-    } else if (Array.isArray(response)) {
-      books.value = response;
-    }
+    const response = await getAllBooks();
+    books.value = response; 
   } catch (error) {
     console.error('Error loading books:', error);
     alert('Error al cargar los libros');
@@ -378,10 +375,10 @@ const handleSubmit = async () => {
   saving.value = true;
   try {
     if (isEditing.value && bookForm.value.id) {
-      await bookService.update(bookForm.value.id, bookForm.value);
+      await bookService.updateBook(bookForm.value.id, bookForm.value);
       alert('✅ Libro actualizado exitosamente');
     } else {
-      await bookService.create(bookForm.value);
+      await bookService.createBook(bookForm.value);
       alert('✅ Libro creado exitosamente');
     }
     closeModal();
@@ -397,7 +394,7 @@ const handleSubmit = async () => {
 const toggleAvailability = async (book: Book) => {
   if (!book.id) return;
   try {
-    await bookService.update(book.id, { ...book, isAvailable: !book.isAvailable });
+  await bookService.updateBook(book.id, { ...book, isAvailable: !book.isAvailable });
     alert(`✅ Libro ${!book.isAvailable ? 'habilitado' : 'deshabilitado'} exitosamente`);
     await loadBooks();
   } catch (error) {
@@ -409,7 +406,7 @@ const toggleAvailability = async (book: Book) => {
 const handleDelete = async (book: Book) => {
   if (!book.id || !confirm(`¿Estás seguro de eliminar "${book.title}"? Esta acción no se puede deshacer.`)) return;
   try {
-    await bookService.delete(book.id);
+    await bookService.deleteBook(book.id);
     alert('✅ Libro eliminado exitosamente');
     await loadBooks();
   } catch (error) {

@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import BookCard from '../components/BookCard.vue';
 import { bookService } from '../services/bookService';
@@ -107,14 +107,15 @@ const books = ref<Book[]>([]);
 const loading = ref(false);
 const error = ref('');
 const searchQuery = ref('');
+const allBooks = ref<Book[]>([]); // Para mantener la lista original
 
 const loadBooks = async () => {
   loading.value = true;
   error.value = '';
-  
   try {
-    const response = await bookService.getAll(0, 50);
-    books.value = response.content || response;
+    const result = await bookService.getAllBooks();
+    books.value = result;
+    allBooks.value = result;
   } catch (err: any) {
     error.value = 'No pudimos cargar el catálogo. Por favor, intenta de nuevo.';
   } finally {
@@ -122,32 +123,29 @@ const loadBooks = async () => {
   }
 };
 
-const handleSearch = async () => {
+const handleSearch = () => {
   if (!searchQuery.value.trim()) {
-    await loadBooks();
+    books.value = [...allBooks.value];
     return;
   }
-
-  loading.value = true;
-  error.value = '';
-  try {
-    books.value = await bookService.searchByTitle(searchQuery.value);
-  } catch (err: any) {
-    error.value = 'Error al buscar libros';
-  } finally {
-    loading.value = false;
-  }
+  const query = searchQuery.value.toLowerCase();
+  books.value = allBooks.value.filter(book =>
+    book.title.toLowerCase().includes(query) ||
+    book.author.toLowerCase().includes(query) ||
+    book.genre.toLowerCase().includes(query)
+  );
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
-  loadBooks();
+  books.value = [...allBooks.value];
 };
 
 onMounted(() => {
   loadBooks();
 });
 </script>
+
 
 <style scoped>
 .books-view {

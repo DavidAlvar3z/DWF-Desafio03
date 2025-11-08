@@ -34,7 +34,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/admin/users")  // ✅ CAMBIO AQUÍ: Agregado /users
 @Tag(name = "User Management", description = "APIs for managing users in the system - Requires JWT Authentication")
 @CrossOrigin(origins = "*", maxAge = 3600)
 @SecurityRequirement(name = "bearerAuth")
@@ -69,15 +69,10 @@ public class UserController {
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(
             @Parameter(description = "Page number (0-based)", example = "0")
             @RequestParam(defaultValue = "0") @Min(0) int page,
-
             @Parameter(description = "Page size", example = "10")
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
-
-            @Parameter(description = "Sort by field(s). Use format: field,direction",
-                    example = "firstName,asc")
-            @RequestParam(defaultValue = "id,asc") String[] sort
+            @RequestParam(defaultValue = "100") @Min(1) @Max(100) int size
     ) {
-        Pageable pageable = createPageable(page, size, sort);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
         Page<UserResponseDTO> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(users);
     }
@@ -99,7 +94,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/{id}")
+    @GetMapping("/{id}")  // GET /api/v1/admin/users/{id}
     @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<UserResponseDTO> getUserById(
             @Parameter(description = "User ID", required = true, example = "1")
@@ -116,19 +111,19 @@ public class UserController {
      */
     @Operation(
             summary = "Create a new user",
-            description = "Create a new user in the system with the provided information. [ADMIN ONLY]"  // ← Cambiado
+            description = "Create a new user in the system with the provided information. [ADMIN ONLY]"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "User created successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),  // ← Agregado
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),  // ← Agregado
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
             @ApiResponse(responseCode = "409", description = "User with this email already exists"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @PostMapping
+    @PostMapping  // POST /api/v1/admin/users
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> createUser(
             @Parameter(description = "User data to create", required = true)
@@ -157,12 +152,11 @@ public class UserController {
             @ApiResponse(responseCode = "409", description = "Email already exists"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/{id}")  // PUT /api/v1/admin/users/{id}
     @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<UserResponseDTO> updateUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long id,
-
             @Parameter(description = "Updated user data", required = true)
             @Valid @RequestBody UpdateUserRequestDTO updateUserDTO
     ) {
@@ -185,7 +179,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")  // DELETE /api/v1/admin/users/{id}
     @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<Map<String, String>> deleteUser(
             @Parameter(description = "User ID", required = true, example = "1")
@@ -213,7 +207,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @DeleteMapping("/{id}/permanent")
+    @DeleteMapping("/{id}/permanent")  // DELETE /api/v1/admin/users/{id}/permanent
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> permanentlyDeleteUser(
             @Parameter(description = "User ID", required = true, example = "1")
@@ -240,7 +234,7 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/search")
+    @GetMapping("/search")  // GET /api/v1/admin/users/search
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> searchUsersByName(
             @Parameter(description = "Name to search for", required = true, example = "John")
@@ -264,7 +258,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/active")
+    @GetMapping("/active")  // GET /api/v1/admin/users/active
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getActiveUsers() {
         List<UserResponseDTO> activeUsers = userService.getActiveUsers();
@@ -285,12 +279,11 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/age-range")
+    @GetMapping("/age-range")  // GET /api/v1/admin/users/age-range
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsersByAgeRange(
             @Parameter(description = "Minimum age", required = true, example = "18")
             @RequestParam @Min(16) @Max(120) Integer minAge,
-
             @Parameter(description = "Maximum age", required = true, example = "65")
             @RequestParam @Min(16) @Max(120) Integer maxAge
     ) {
@@ -311,7 +304,7 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/with-subscriptions")
+    @GetMapping("/with-subscriptions")  // GET /api/v1/admin/users/with-subscriptions
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsersWithActiveSubscriptions() {
         List<UserResponseDTO> users = userService.getUsersWithActiveSubscriptions();
@@ -333,33 +326,25 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/advanced-search")
+    @GetMapping("/advanced-search")  // GET /api/v1/admin/users/advanced-search
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponseDTO>> advancedSearch(
             @Parameter(description = "First name filter", example = "John")
             @RequestParam(required = false) String firstName,
-
             @Parameter(description = "Last name filter", example = "Doe")
             @RequestParam(required = false) String lastName,
-
             @Parameter(description = "Email filter", example = "john@example.com")
             @RequestParam(required = false) String email,
-
             @Parameter(description = "Active status filter", example = "true")
             @RequestParam(required = false) Boolean isActive,
-
             @Parameter(description = "Minimum age", example = "18")
             @RequestParam(required = false) @Min(16) Integer minAge,
-
             @Parameter(description = "Maximum age", example = "65")
             @RequestParam(required = false) @Max(120) Integer maxAge,
-
             @Parameter(description = "Page number", example = "0")
             @RequestParam(defaultValue = "0") @Min(0) int page,
-
             @Parameter(description = "Page size", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
-
             @Parameter(description = "Sort criteria", example = "firstName,asc")
             @RequestParam(defaultValue = "id,asc") String[] sort
     ) {
@@ -384,7 +369,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/email/{email}")
+    @GetMapping("/email/{email}")  // GET /api/v1/admin/users/email/{email}
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> getUserByEmail(
             @Parameter(description = "User email", required = true, example = "john@example.com")
@@ -408,7 +393,7 @@ public class UserController {
                             examples = @ExampleObject(value = "{\"exists\": true, \"email\": \"john@example.com\"}"))),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/email/{email}/exists")
+    @GetMapping("/email/{email}/exists")  // GET /api/v1/admin/users/email/{email}/exists
     @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> checkEmailExists(
             @Parameter(description = "Email to check", required = true, example = "john@example.com")
@@ -437,7 +422,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/statistics")
+    @GetMapping("/statistics")  // GET /api/v1/admin/users/statistics
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getUserStatistics() {
         Map<String, Object> stats = new HashMap<>();
@@ -453,27 +438,52 @@ public class UserController {
         try {
             List<Sort.Order> orders = new ArrayList<>();
 
-            for (String sortParam : sort) {
-                // Split by comma: "field,direction"
-                String[] parts = sortParam.split(",");
-
-                if (parts.length > 0) {
-                    String property = parts[0].trim();
-
-                    // Default direction is ASC
-                    Sort.Direction direction = Sort.Direction.ASC;
-
-                    if (parts.length > 1) {
-                        String directionStr = parts[1].trim().toUpperCase();
-                        if (directionStr.equals("DESC")) {
-                            direction = Sort.Direction.DESC;
-                        }
-                    }
-
-                    orders.add(new Sort.Order(direction, property));
-                }
+            // Si el array está vacío o es null, usar ordenamiento por defecto
+            if (sort == null || sort.length == 0) {
+                return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
             }
 
+            for (String sortParam : sort) {
+                // Eliminar espacios en blanco
+                sortParam = sortParam.trim();
+
+                // Si el parámetro está vacío, continuar
+                if (sortParam.isEmpty()) {
+                    continue;
+                }
+
+                // Split por coma: "field,direction"
+                String[] parts = sortParam.split(",");
+
+                if (parts.length == 0) {
+                    continue;
+                }
+
+                // Obtener el nombre de la propiedad
+                String property = parts[0].trim();
+
+                // Validar que la propiedad no esté vacía
+                if (property.isEmpty()) {
+                    continue;
+                }
+
+                // Default direction es ASC
+                Sort.Direction direction = Sort.Direction.ASC;
+
+                // Si hay una segunda parte, parsear la dirección
+                if (parts.length > 1) {
+                    String directionStr = parts[1].trim().toUpperCase();
+                    if (directionStr.equals("DESC")) {
+                        direction = Sort.Direction.DESC;
+                    }
+                    // Si es "ASC" o cualquier otra cosa, mantener ASC por defecto
+                }
+
+                // Agregar la orden a la lista
+                orders.add(new Sort.Order(direction, property));
+            }
+
+            // Si no se agregó ninguna orden, usar ordenamiento por defecto
             if (orders.isEmpty()) {
                 return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
             }
@@ -481,7 +491,7 @@ public class UserController {
             return PageRequest.of(page, size, Sort.by(orders));
 
         } catch (Exception e) {
-            log.error("❌ Error creating Pageable: {}", e.getMessage());
+            log.error("❌ Error creating Pageable: {}", e.getMessage(), e);
             // Return default pagination if there's an error
             return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
         }

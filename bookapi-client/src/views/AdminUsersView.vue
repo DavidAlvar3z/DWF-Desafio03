@@ -288,6 +288,7 @@ import { ref, computed, onMounted } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import { userService } from '../services/userService';
 
+
 interface User {
   id: number;
   firstName: string;
@@ -318,7 +319,7 @@ const loadUsers = async () => {
   error.value = '';
   
   try {
-    const response = await userService.getAll(0, 1000);
+    const response = await userService.getAllUsers(0, 100);  // ✅ Cambios aquí
     if (response.content && Array.isArray(response.content)) {
       users.value = response.content;
     } else if (Array.isArray(response)) {
@@ -332,6 +333,7 @@ const loadUsers = async () => {
     loading.value = false;
   }
 };
+
 
 const openViewModal = (user: User) => {
   selectedUser.value = user;

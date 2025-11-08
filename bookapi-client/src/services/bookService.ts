@@ -5,71 +5,75 @@ export interface Book {
   title: string;
   author: string;
   isbn: string;
-  publicationYear: number;
   genre: string;
-  pageCount: number;          
-  description: string;
-  isAvailable: boolean;        
+  publicationYear: number;
+  pageCount: number;
+  description: string; 
+  isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface CreateBookRequest {
   title: string;
   author: string;
   isbn: string;
-  publicationYear: number;
   genre: string;
-  pageCount: number;            
-  description: string;
+  publicationYear: number;
+  pageCount: number;
+  description?: string;
   isAvailable: boolean;
 }
 
-export const bookService = {
-  async getAll(page = 0, size = 10) {
-    const response = await api.get('/books', {
-      params: { page, size, sort: 'id,desc' }
-    });
-    return response.data;
-  },
+export interface UpdateBookRequest {
+  title?: string;
+  author?: string;
+  isbn?: string;
+  genre?: string;
+  publicationYear?: number;
+  pageCount?: number;
+  description?: string;
+  isAvailable?: boolean;
+}
 
-  async getById(id: number): Promise<Book> {
+export const bookService = {
+  async getAllBooks(): Promise<Book[]> {
+  const response = await api.get('/books');
+    const books = response.data.content || response.data;
+    return Array.isArray(books) ? books : [];
+  },
+  async getBookById(id: number): Promise<Book> {
     const response = await api.get(`/books/${id}`);
     return response.data;
   },
 
-  async getAvailable(page = 0, size = 10) {
-    const response = await api.get('/books/available', {
-      params: { page, size }
-    });
+  async createBook(book: CreateBookRequest): Promise<Book> {
+    const response = await api.post('/books', book);
     return response.data;
   },
 
-  async searchByTitle(title: string, page = 0, size = 10) {
-    const response = await api.get('/books/search/title', {
-      params: { title, page, size }
-    });
+  async updateBook(id: number, book: UpdateBookRequest): Promise<Book> {
+    const response = await api.put(`/books/${id}`, book);
     return response.data;
   },
 
-  async searchByAuthor(author: string, page = 0, size = 10) {
-    const response = await api.get('/books/search/author', {
-      params: { author, page, size }
-    });
-    return response.data;
-  },
-
-  async create(data: CreateBookRequest): Promise<Book> {
-    const response = await api.post('/books', data);
-    return response.data;
-  },
-
-  async update(id: number, data: CreateBookRequest): Promise<Book> {
-    const response = await api.put(`/books/${id}`, data);
-    return response.data;
-  },
-
-  async delete(id: number): Promise<void> {
+  async deleteBook(id: number): Promise<void> {
     await api.delete(`/books/${id}`);
+  },
+
+  async getAvailableBooks(): Promise<Book[]> {
+    const response = await api.get('/books?available=true');
+    return response.data;
   }
 };
+
+// Export individual functions for convenience
+export const {
+  getAllBooks,
+  getBookById,
+  createBook,
+  updateBook,
+  deleteBook,
+  getAvailableBooks
+} = bookService;

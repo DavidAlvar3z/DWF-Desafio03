@@ -25,241 +25,128 @@
       </button>
 
       <div v-if="loading" class="loading-container">
-        <div class="loader-premium">
-          <div class="book-loader">
-            <div class="page"></div>
-            <div class="page"></div>
-            <div class="page"></div>
-          </div>
-        </div>
-        <p class="loading-text">Cargando tu próxima aventura...</p>
+        <div class="loading-spinner"></div>
+        <p>Cargando detalles del libro...</p>
       </div>
 
       <div v-else-if="error" class="error-container">
         <div class="error-icon">
           <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
         </div>
-        <h3>¡Houston, tenemos un problema!</h3>
+        <h3>Error al cargar el libro</h3>
         <p>{{ error }}</p>
-        <button @click="loadBook" class="btn-retry">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-          </svg>
-          Intentar nuevamente
-        </button>
+        <button @click="fetchBook" class="btn-retry">Reintentar</button>
       </div>
-      
-      <div v-else-if="book" class="book-detail-premium">
-        <div class="book-showcase">
-          <div class="book-3d-wrapper">
-            <div class="book-3d">
-              <div class="book-spine"></div>
-              <div class="book-top"></div>
-              <div class="book-front">
-                <div class="book-cover-glow"></div>
-                <div class="book-content">
-                  <div class="book-icon-large">📖</div>
-                  <h3 class="book-cover-title">{{ book.title }}</h3>
-                  <p class="book-cover-author">{{ book.author }}</p>
-                  <div class="book-cover-decoration">
-                    <div class="deco-line"></div>
-                    <div class="deco-star">✦</div>
-                    <div class="deco-line"></div>
-                  </div>
+
+      <div v-else-if="book" class="book-detail-content">
+        <div class="book-hero">
+          <div class="book-cover-section">
+            <div class="book-cover-wrapper">
+              <div class="book-cover-3d">
+                <div class="book-cover-front">
+                  <div class="book-cover-overlay"></div>
+                  <div class="book-cover-title">{{ book.title }}</div>
+                  <div class="book-cover-author">{{ book.author }}</div>
                 </div>
+                <div class="book-spine"></div>
               </div>
+            </div>
+            <div class="book-badges">
+              <span class="badge badge-genre">{{ book.genre }}</span>
+              <span v-if="book.isAvailable" class="badge badge-available">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Disponible
+              </span>
+              <span v-else class="badge badge-unavailable">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                No disponible
+              </span>
             </div>
           </div>
 
-          <div class="info-cards">
-            <div class="info-card">
-              <div class="info-icon">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-                </svg>
+          <div class="book-info-section">
+            <div class="book-header">
+              <h1 class="book-title">{{ book.title }}</h1>
+              <p class="book-author">por {{ book.author }}</p>
+            </div>
+
+            <div class="book-meta">
+              <div class="meta-item">
+                <div class="meta-icon">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="meta-content">
+                  <div class="meta-label">Año de publicación</div>
+                  <div class="meta-value">{{ book.publicationYear }}</div>
+                </div>
               </div>
-              <div class="info-content">
-                <span class="info-value">{{ book.pageCount }}</span>
-                <span class="info-label">Páginas</span>
+
+              <div class="meta-item">
+                <div class="meta-icon">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                  </svg>
+                </div>
+                <div class="meta-content">
+                  <div class="meta-label">Páginas</div>
+                  <div class="meta-value">{{ book.pageCount }}</div>
+                </div>
+              </div>
+
+              <div class="meta-item">
+                <div class="meta-icon">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="meta-content">
+                  <div class="meta-label">Género</div>
+                  <div class="meta-value">{{ book.genre }}</div>
+                </div>
+              </div>
+
+              <div class="meta-item">
+                <div class="meta-icon">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="meta-content">
+                  <div class="meta-label">ISBN</div>
+                  <div class="meta-value">{{ book.isbn }}</div>
+                </div>
               </div>
             </div>
 
-            <div class="info-card">
-              <div class="info-icon">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="info-content">
-                <span class="info-value">{{ book.publicationYear }}</span>
-                <span class="info-label">Año</span>
-              </div>
-            </div>
-
-            <div class="info-card">
-              <div class="info-icon">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="info-content">
-                <span class="info-value">{{ book.genre }}</span>
-                <span class="info-label">Género</span>
-              </div>
+            <div class="book-description">
+              <h3 class="description-title">Descripción</h3>
+              <p class="description-text">{{ book.description || 'Sin descripción disponible.' }}</p>
             </div>
           </div>
         </div>
 
-        <div class="book-info-premium">
-          <div class="availability-section">
-            <div class="availability-badge" :class="{ available: book.isAvailable, unavailable: !book.isAvailable }">
-              <span class="pulse-ring"></span>
-              <span class="pulse-dot"></span>
-              <span class="badge-text">{{ book.isAvailable ? '✅ Disponible Ahora' : '❌ No Disponible' }}</span>
-            </div>
-          </div>
-
-          <div class="title-section">
-            <h1 class="book-title-main">
-              {{ book.title }}
-              <div class="title-underline"></div>
-            </h1>
-            <h2 class="book-author-main">
+        <div class="subscription-section">
+          <div class="section-header">
+            <div class="section-icon">
               <svg viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd" />
               </svg>
-              Por <span class="author-name">{{ book.author }}</span>
-            </h2>
-          </div>
-
-          <div class="tags-section">
-            <div class="tag genre-tag-premium">
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-              </svg>
-              {{ book.genre }}
             </div>
-            <div class="tag isbn-tag-premium">
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-              </svg>
-              ISBN: {{ book.isbn }}
+            <div>
+              <h2 class="section-title">Planes de Suscripción</h2>
+              <p class="section-subtitle">Elige el plan perfecto para tu lectura</p>
             </div>
           </div>
 
-          <div class="description-premium">
-            <div class="section-header">
-              <span class="section-icon">📚</span>
-              <h3>Sinopsis</h3>
-            </div>
-            <div class="description-content">
-              <p>{{ book.description }}</p>
-            </div>
-          </div>
-
-          <div v-if="user?.role !== 'ADMIN'" class="subscription-premium-section">
-            <div class="section-header">
-              <span class="section-icon">🎯</span>
-              <h3>Elige tu Plan Premium</h3>
-            </div>
-
-            <div class="plans-grid">
-              <div 
-                v-for="type in subscriptionTypes" 
-                :key="type.value" 
-                class="plan-premium"
-                :class="{ 
-                  selected: selectedType === type.value,
-                  popular: type.value === 'MONTHLY'
-                }"
-                @click="selectedType = type.value"
-              >
-                <div v-if="type.value === 'MONTHLY'" class="popular-badge">⭐ Más Popular</div>
-                <div class="plan-icon-premium">{{ type.icon }}</div>
-                <h4 class="plan-title">{{ type.label }}</h4>
-                <p class="plan-description">{{ type.description }}</p>
-                <div class="plan-price-premium">
-                  <span class="price-currency">$</span>
-                  <span class="price-amount">{{ type.price }}</span>
-                  <span class="price-period">{{ type.period }}</span>
-                </div>
-                <div class="plan-features">
-                  <div class="feature">✓ Acceso ilimitado</div>
-                  <div class="feature">✓ Sin publicidad</div>
-                  <div class="feature">✓ Descarga offline</div>
-                </div>
-                <div class="plan-selector">
-                  <div class="selector-ring">
-                    <div v-if="selectedType === type.value" class="selector-check">
-                      <svg viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="payment-premium">
-              <div class="section-header">
-                <span class="section-icon">💳</span>
-                <h3>Método de Pago</h3>
-              </div>
-              <div class="payment-selector">
-                <svg class="payment-icon" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                  <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
-                </svg>
-                <select v-model="selectedPayment" class="payment-select-premium">
-                  <option value="CREDIT_CARD">💳 Tarjeta de Crédito</option>
-                  <option value="DEBIT_CARD">💳 Tarjeta de Débito</option>
-                  <option value="PAYPAL">🅿️ PayPal</option>
-                  <option value="BANK_TRANSFER">🏦 Transferencia Bancaria</option>
-                  <option value="CASH">💵 Efectivo</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              @click="handleSubscribe"
-              class="btn-subscribe-premium"
-              :disabled="!book.isAvailable || subscribing"
-            >
-              <span class="btn-glow"></span>
-              <span class="btn-content">
-                <svg v-if="!subscribing" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
-                </svg>
-                <div v-else class="spinner-premium"></div>
-                {{ subscribing ? 'Procesando tu suscripción...' : '🚀 Suscribirme Ahora' }}
-              </span>
-            </button>
-
-            <div class="trust-badges">
-              <div class="trust-badge">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span>Pago Seguro</span>
-              </div>
-              <div class="trust-badge">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span>Cancela Cuando Quieras</span>
-              </div>
-              <div class="trust-badge">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                </svg>
-                <span>Garantía 30 Días</span>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="admin-premium-section">
+          <div v-if="isAdmin" class="admin-premium-section">
             <div class="admin-glow"></div>
             <div class="admin-content">
               <div class="admin-icon-large">
@@ -267,17 +154,124 @@
                   <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                 </svg>
               </div>
-              <h3 class="admin-title">👑 Panel de Administrador</h3>
-              <p class="admin-desc">Como administrador, tienes acceso completo para gestionar este libro y todo el contenido del sistema.</p>
+              <h3 class="admin-title">Administrator Preview Mode</h3>
+              
+              <div class="admin-info-box">
+                <div class="info-icon-admin">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="info-text-admin">
+                  <p class="info-title-admin">Testing & Preview Access</p>
+                  <p class="info-desc-admin">
+                    As an administrator, you have full access to view book details and subscription plans for testing purposes. 
+                    This preview allows you to verify content availability, pricing, and user experience without creating actual subscriptions.
+                  </p>
+                </div>
+              </div>
+
+              <div class="admin-features">
+                <div class="feature-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Preview book availability status</span>
+                </div>
+                <div class="feature-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Test subscription plans and pricing</span>
+                </div>
+                <div class="feature-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Verify user interface and flow</span>
+                </div>
+              </div>
+              
               <router-link to="/admin/books" class="btn-admin-premium">
                 <span class="btn-admin-glow"></span>
                 <span class="btn-admin-content">
                   <svg viewBox="0 0 20 20" fill="currentColor">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                   </svg>
-                  Ir a Gestión de Libros
+                  Go to Book Management
                 </span>
               </router-link>
+            </div>
+          </div>
+
+          <div v-else-if="!book.isAvailable" class="unavailable-message">
+            <div class="unavailable-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <h3>Libro no disponible</h3>
+            <p>Este libro no está disponible para suscripción en este momento. Por favor, revisa más tarde o explora otros títulos de nuestro catálogo.</p>
+            <router-link to="/books" class="btn-explore">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+              Explorar catálogo
+            </router-link>
+          </div>
+
+          <div v-else class="subscription-plans">
+            <div v-for="plan in subscriptionPlans" :key="plan.type" class="plan-card" :class="{ 'plan-popular': plan.popular }">
+              <div v-if="plan.popular" class="plan-popular-badge">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                Más popular
+              </div>
+              
+              <div class="plan-header">
+                <div class="plan-icon" :class="`plan-icon-${plan.type.toLowerCase()}`">
+                  <svg v-if="plan.type === 'DAILY'" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else-if="plan.type === 'WEEKLY'" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else-if="plan.type === 'MONTHLY'" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <h3 class="plan-name">{{ plan.name }}</h3>
+                <div class="plan-price">
+                  <span class="price-currency">$</span>
+                  <span class="price-amount">{{ plan.price }}</span>
+                  <span class="price-period">/{{ plan.period }}</span>
+                </div>
+              </div>
+
+              <div class="plan-features">
+                <div v-for="(feature, index) in plan.features" :key="index" class="feature">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                  <span>{{ feature }}</span>
+                </div>
+              </div>
+
+              <button @click="subscribe(plan)" class="btn-subscribe" :class="{ 'btn-subscribe-popular': plan.popular }">
+                <span class="btn-subscribe-glow"></span>
+                <span class="btn-subscribe-content">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  Suscribirse ahora
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -287,102 +281,133 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import NavBar from '../components/NavBar.vue';
-import { bookService } from '../services/bookService';
-import { subscriptionService } from '../services/subscriptionService';
-import { authService } from '../services/authService';
-import type { Book } from '../types/book';
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import NavBar from '../components/NavBar.vue'
+import { getBookById } from '../services/bookService'
+import { authService } from '../services/authService'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 
-const book = ref<Book | null>(null);
-const loading = ref(false);
-const error = ref('');
-const subscribing = ref(false);
+const book = ref<any>(null)
+const loading = ref(true)
+const error = ref<string | null>(null)
 
-const selectedType = ref('MONTHLY');
-const selectedPayment = ref('CREDIT_CARD');
+const currentUser = computed(() => {
+  return authService.getCurrentUser()
+})
 
-const user = computed(() => authService.getCurrentUser());
+const isAdmin = computed(() => {
+  return authService.isAdmin()
+})
 
-const subscriptionTypes = [
-  { 
-    value: 'DAILY', 
-    label: 'Plan Diario', 
-    price: '2.99', 
-    period: '/día', 
-    icon: '⚡', 
-    description: 'Perfecto para una lectura rápida' 
+const subscriptionPlans = ref([
+  {
+    type: 'DAILY',
+    name: 'Diario',
+    price: '2.99',
+    period: 'día',
+    features: [
+      'Acceso completo por 24 horas',
+      'Lectura ilimitada',
+      'Sin compromiso',
+      'Soporte básico'
+    ],
+    popular: false
   },
-  { 
-    value: 'WEEKLY', 
-    label: 'Plan Semanal', 
-    price: '9.99', 
-    period: '/semana', 
-    icon: '📅', 
-    description: 'Ideal para lectores ocasionales' 
+  {
+    type: 'WEEKLY',
+    name: 'Semanal',
+    price: '14.99',
+    period: 'semana',
+    features: [
+      'Acceso completo por 7 días',
+      'Lectura ilimitada',
+      'Ahorra 50% vs diario',
+      'Soporte prioritario'
+    ],
+    popular: true
   },
-  { 
-    value: 'MONTHLY', 
-    label: 'Plan Mensual', 
-    price: '29.99', 
-    period: '/mes', 
-    icon: '⭐', 
-    description: 'El favorito de nuestros lectores' 
+  {
+    type: 'MONTHLY',
+    name: 'Mensual',
+    price: '29.99',
+    period: 'mes',
+    features: [
+      'Acceso completo por 30 días',
+      'Lectura ilimitada',
+      'Mejor valor',
+      'Soporte premium'
+    ],
+    popular: false
   },
-  { 
-    value: 'YEARLY', 
-    label: 'Plan Anual', 
-    price: '299.99', 
-    period: '/año', 
-    icon: '🏆', 
-    description: 'Ahorra 2 meses gratis' 
+  {
+    type: 'YEARLY',
+    name: 'Anual',
+    price: '299.99',
+    period: 'año',
+    features: [
+      'Acceso completo por 365 días',
+      'Lectura ilimitada',
+      'Ahorra 17% vs mensual',
+      'Soporte VIP'
+    ],
+    popular: false
   }
-];
+])
 
-const loadBook = async () => {
-  loading.value = true;
-  error.value = '';
+const fetchBook = async () => {
+  loading.value = true
+  error.value = null
   
   try {
-    const bookId = Number(route.params.id);
-    book.value = await bookService.getById(bookId);
+    const bookId = Number(route.params.id)
+    book.value = await getBookById(bookId)
   } catch (err: any) {
-    error.value = 'No pudimos cargar este libro. Por favor, intenta nuevamente.';
+    console.error('Error fetching book:', err)
+    error.value = err.message || 'Error al cargar el libro'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-const handleSubscribe = async () => {
-  if (!book.value) return;
-
-  subscribing.value = true;
-  const currentUser = authService.getCurrentUser();
-
-  try {
-    await subscriptionService.create({
-      userId: currentUser.id?,
-      bookId: book.value.id,
-      subscriptionType: selectedType.value as any,
-      paymentMethod: selectedPayment.value as any
-    });
-
-    alert('🎉 ¡Felicitaciones! Tu suscripción ha sido creada exitosamente.');
-    router.push('/subscriptions');
-  } catch (err: any) {
-    alert('❌ ' + (err.response?.data?.message || 'Error al crear la suscripción'));
-  } finally {
-    subscribing.value = false;
+const subscribe = (plan: any) => {
+  // Validar que el usuario esté autenticado
+  if (!currentUser.value) {
+    console.error('❌ Usuario no autenticado')
+    alert('Debes iniciar sesión para suscribirte')
+    router.push('/login')
+    return
   }
-};
+
+  // Validar que el libro exista
+  if (!book.value?.id) {
+    console.error('❌ Libro no disponible')
+    alert('Error: Libro no disponible')
+    return
+  }
+
+  // Validar que el usuario tenga ID
+  if (!currentUser.value.id) {
+    console.error('❌ ID de usuario no disponible')
+    alert('Error: Sesión inválida. Por favor, inicia sesión nuevamente')
+    router.push('/login')
+    return
+  }
+
+  console.log('✅ Iniciando suscripción:', {
+    userId: currentUser.value.id,
+    bookId: book.value.id,
+    plan: plan.type
+  })
+
+  alert(`Suscripción ${plan.name} iniciada para "${book.value.title}"`)
+}
 
 onMounted(() => {
-  loadBook();
-});
+  fetchBook()
+})
 </script>
 
 <style scoped>
@@ -394,6 +419,7 @@ onMounted(() => {
   overflow-x: hidden;
 }
 
+/* Animated Background */
 .animated-background {
   position: fixed;
   top: 0;
@@ -492,12 +518,12 @@ onMounted(() => {
 .container {
   position: relative;
   z-index: 1;
-  max-width: none;
-  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem 4rem;
+  padding: 2rem;
 }
 
+/* Premium Back Button */
 .btn-back {
   display: inline-flex;
   align-items: center;
@@ -552,6 +578,7 @@ onMounted(() => {
   box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
 }
 
+/* Premium Loading */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -622,6 +649,7 @@ onMounted(() => {
   animation: pulse 2s infinite;
 }
 
+/* Premium Error State */
 .error-container {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
@@ -695,6 +723,7 @@ onMounted(() => {
   box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
 }
 
+/* Premium Book Detail Layout */
 .book-detail-premium {
   display: grid;
   grid-template-columns: 550px 1fr;
@@ -702,6 +731,7 @@ onMounted(() => {
   margin-top: 2rem;
 }
 
+/* 3D Book Showcase */
 .book-showcase {
   display: flex;
   flex-direction: column;
@@ -856,6 +886,7 @@ onMounted(() => {
   50% { opacity: 0.5; transform: scale(1.2); }
 }
 
+/* Info Cards */
 .info-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -916,12 +947,14 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Book Info Premium */
 .book-info-premium {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
+/* Availability Badge */
 .availability-section {
   margin-bottom: 1rem;
 }
@@ -994,6 +1027,7 @@ onMounted(() => {
   box-shadow: 0 0 20px #f56565;
 }
 
+/* Title Section */
 .title-section {
   margin-bottom: 2rem;
 }
@@ -1041,6 +1075,7 @@ onMounted(() => {
   color: #667eea;
 }
 
+/* Premium Tags */
 .tags-section {
   display: flex;
   flex-wrap: wrap;
@@ -1076,6 +1111,7 @@ onMounted(() => {
   height: 18px;
 }
 
+/* Description Premium */
 .description-premium {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
@@ -1109,6 +1145,7 @@ onMounted(() => {
   margin: 0;
 }
 
+/* Subscription Premium Section */
 .subscription-premium-section {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
@@ -1122,7 +1159,6 @@ onMounted(() => {
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
-  padding: 1rem;
 }
 
 .plan-premium {
@@ -1131,12 +1167,9 @@ onMounted(() => {
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  padding: 2rem 2rem 3rem 2rem;
+  padding: 2rem;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  min-height: 420px;
 }
 
 .plan-premium:hover {
@@ -1158,7 +1191,7 @@ onMounted(() => {
 
 .popular-badge {
   position: absolute;
-  top: -14px;
+  top: -12px;
   right: 20px;
   background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
   color: white;
@@ -1167,7 +1200,6 @@ onMounted(() => {
   font-size: 0.75rem;
   font-weight: 700;
   box-shadow: 0 4px 15px rgba(246, 173, 85, 0.4);
-  z-index: 10;
 }
 
 .plan-icon-premium {
@@ -1231,30 +1263,27 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin-top: auto;
-  padding-top: 1.5rem;
 }
 
 .selector-ring {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
-  flex-shrink: 0;
 }
 
 .plan-premium.selected .selector-ring {
   border-color: #667eea;
   background: #667eea;
-  box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
 }
 
 .selector-check {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   color: white;
 }
 
@@ -1263,6 +1292,7 @@ onMounted(() => {
   height: 100%;
 }
 
+/* Payment Premium */
 .payment-premium {
   margin-bottom: 2rem;
 }
@@ -1306,6 +1336,7 @@ onMounted(() => {
   color: white;
 }
 
+/* Subscribe Button Premium */
 .btn-subscribe-premium {
   width: 100%;
   padding: 1.75rem;
@@ -1375,6 +1406,7 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
+/* Trust Badges */
 .trust-badges {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1406,6 +1438,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* Admin Premium Section */
 .admin-premium-section {
   position: relative;
   background: rgba(246, 173, 85, 0.1);
@@ -1519,6 +1552,7 @@ onMounted(() => {
   box-shadow: 0 20px 60px rgba(246, 173, 85, 0.7);
 }
 
+/* Responsive */
 @media (max-width: 1400px) {
   .book-detail-premium {
     grid-template-columns: 1fr;

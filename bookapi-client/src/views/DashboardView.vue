@@ -160,8 +160,9 @@ const stats = ref({
 onMounted(async () => {
   try {
     // argar total de libros
-    const booksResponse = await bookService.getAll(0, 1);
-    stats.value.totalBooks = booksResponse.totalElements || 0;
+  const allBooks = await bookService.getAllBooks();
+  stats.value.totalBooks = Array.isArray(allBooks) ? allBooks.length : 0;
+
 
     // Cargar suscripciones según el rol
     if (isAdmin.value) {

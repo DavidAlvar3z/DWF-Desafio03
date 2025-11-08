@@ -295,9 +295,12 @@ const handleRegister = async () => {
   success.value = '';
 
   try {
-    await authService.register(form.value);
+    const registerData = {
+      ...form.value,
+      name: `${form.value.firstName} ${form.value.lastName}` // <-- Aquí creas name
+    };
+    await authService.register(registerData);
     success.value = '¡Cuenta creada exitosamente! Redirigiendo al login...';
-    
     setTimeout(() => {
       router.push('/login');
     }, 2000);
