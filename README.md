@@ -1,4 +1,3 @@
-```markdown
 # 📚 Letras Vivas - Full Stack Book Subscription Platform
 
 <div align="center">
